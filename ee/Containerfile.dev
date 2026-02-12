@@ -1,0 +1,27 @@
+FROM python:3.13-slim
+
+RUN apt-get update && apt-get install -y openssh-client git curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Node.js and Claude CLI (needed by ftl2-ai-loop's decide() function)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g @anthropic-ai/claude-code && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install ftl2-ai-runner (pulls in ftl2-runner and ftl2-ai-loop)
+COPY . /tmp/ftl2-ai-runner
+RUN pip install --no-cache-dir /tmp/ftl2-ai-runner && rm -rf /tmp/ftl2-ai-runner
+
+# ansible-runner symlink (Receptor calls this)
+RUN ln -sf /usr/local/bin/ftl2-ai-runner /usr/local/bin/ansible-runner
+
+# ansible-playbook wrapper (AWX calls this inside the EE)
+RUN echo '#!/bin/bash\nexec ftl2-ai-runner playbook "$@"' > /usr/local/bin/ansible-playbook && \
+    chmod +x /usr/local/bin/ansible-playbook
+
+# ANTHROPIC_API_KEY injected via AWX custom credential type as env var
+
+RUN useradd -m runner
+USER runner
+WORKDIR /runner

@@ -1,0 +1,7 @@
+hosts: all
+---
+# Web Server Setup
+
+Ensure nginx is installed and running.
+The default site should serve files from /var/www/html.
+Create an index.html with the content "Hello from FTL2 AI Runner".
